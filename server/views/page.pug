@@ -7,7 +7,7 @@ block head
     != injectCode.head
   if config.features.featurePageComments
     != comments.head
-  if config.features.featurePageRatings
+  if ratingsEnabled
     style(type='text/css').
       .page-rating {
         margin: 0 0 20px 0;
@@ -60,7 +60,7 @@ block body
       filename=pageFilename
       )
       template(slot='contents')
-        if config.features.featurePageRatings
+        if ratingsEnabled
           .page-rating
             .page-rating-stars#page-rating-stars
               each val in [1, 2, 3, 4, 5]
@@ -78,7 +78,7 @@ block body
   if config.features.featurePageComments
     != comments.body
   
-  if config.features.featurePageRatings
+  if ratingsEnabled
     script.
       (function() {
         var pageId = !{page.id};

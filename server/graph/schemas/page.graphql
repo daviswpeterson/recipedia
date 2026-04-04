@@ -90,6 +90,7 @@ type PageMutation {
     editor: String!
     isPublished: Boolean!
     isPrivate: Boolean!
+    isRatingDisabled: Boolean
     locale: String!
     path: String!
     publishEndDate: Date
@@ -107,6 +108,7 @@ type PageMutation {
     editor: String
     isPrivate: Boolean
     isPublished: Boolean
+    isRatingDisabled: Boolean
     locale: String
     path: String
     publishEndDate: Date
@@ -187,6 +189,7 @@ type Page {
   description: String!
   isPrivate: Boolean! @auth(requires: ["write:pages", "manage:system"])
   isPublished: Boolean! @auth(requires: ["write:pages", "manage:system"])
+  isRatingDisabled: Boolean!
   privateNS: String @auth(requires: ["write:pages", "manage:system"])
   publishStartDate: Date! @auth(requires: ["write:pages", "manage:system"])
   publishEndDate: Date! @auth(requires: ["write:pages", "manage:system"])

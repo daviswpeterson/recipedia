@@ -557,6 +557,9 @@ router.get('/*', async (req, res, next) => {
             if (userRatingResult) { userRating = userRatingResult.rating }
           }
 
+          // -> Check for 'no-rating' tag
+          const hasNoRatingTag = _.some(page.tags, { tag: 'no-rating' })
+
           // -> Render view
           res.render('page', {
             page,
@@ -567,7 +570,8 @@ router.get('/*', async (req, res, next) => {
             pageFilename,
             ratingScore: ratingScoreResult ? parseFloat(ratingScoreResult.avgRating) || 0 : 0,
             ratingCount: ratingCountResult ? parseInt(ratingCountResult.countRating) || 0 : 0,
-            userRating
+            userRating,
+            ratingsEnabled: WIKI.config.features.featurePageRatings && (page.isRatingDisabled === true || page.isRatingDisabled === 1 ? false : true) && !hasNoRatingTag
           })
         }
       } else if (pageArgs.path === 'home') {
