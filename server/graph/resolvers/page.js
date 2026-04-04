@@ -623,6 +623,19 @@ module.exports = {
   Page: {
     async tags (obj) {
       return WIKI.models.pages.relatedQuery('tags').for(obj.id)
+    },
+    async ratingScore (obj) {
+      const result = await WIKI.models.knex('pageRatings').where('pageId', obj.id).avg({ avgRating: 'rating' }).first()
+      return result ? parseFloat(result.avgRating) || 0 : 0
+    },
+    async ratingCount (obj) {
+      const result = await WIKI.models.knex('pageRatings').where('pageId', obj.id).count({ countRating: 'id' }).first()
+      return result ? parseInt(result.countRating) || 0 : 0
+    },
+    async userRating (obj, args, context) {
+      if (!context.req.user || context.req.user.id === 2) { return 0 }
+      const result = await WIKI.models.knex('pageRatings').where({ pageId: obj.id, userId: context.req.user.id }).first('rating')
+      return result ? result.rating : 0
     }
     // comments(pg) {
     //   return pg.$relatedQuery('comments')

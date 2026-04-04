@@ -7,6 +7,33 @@ block head
     != injectCode.head
   if config.features.featurePageComments
     != comments.head
+  if ratingsEnabled
+    style(type='text/css').
+      .page-rating {
+        margin: 0 0 20px 0;
+        padding: 0 0 10px 0;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+      }
+      .page-rating-stars {
+        display: inline-flex;
+        margin-right: 15px;
+      }
+      .page-rating-stars i {
+        cursor: pointer;
+        font-size: 24px;
+        color: #ccc;
+        transition: color 0.2s;
+      }
+      .page-rating-stars i.active,
+      .page-rating-stars i.hover {
+        color: #ffc107;
+      }
+      .page-rating-info {
+        font-size: 14px;
+        color: #666;
+      }
 
 block body
   #root
@@ -33,6 +60,16 @@ block body
       filename=pageFilename
       )
       template(slot='contents')
+        if ratingsEnabled
+          .page-rating
+            .page-rating-stars#page-rating-stars
+              each val in [1, 2, 3, 4, 5]
+                i(class=(userRating >= val ? 'mdi mdi-star active' : 'mdi mdi-star-outline'), data-rating=val)
+            .page-rating-info
+              span#page-rating-score= ratingScore.toFixed(1)
+              |  / 5 (
+              span#page-rating-count= ratingCount
+              |  ratings)
         div!= page.render
       template(slot='comments')
         div!= comments.main
@@ -40,3 +77,77 @@ block body
     != injectCode.body
   if config.features.featurePageComments
     != comments.body
+  
+  if ratingsEnabled
+    script.
+      (function() {
+        var pageId = !{page.id};
+        
+        document.body.addEventListener('mouseover', function(e) {
+          if (e.target.matches('#page-rating-stars i')) {
+            var rating = parseInt(e.target.getAttribute('data-rating'));
+            var stars = e.target.parentNode.querySelectorAll('i');
+            stars.forEach(function(star, index) {
+              if (index < rating) {
+                star.classList.add('hover');
+              } else {
+                star.classList.remove('hover');
+              }
+            });
+          }
+        });
+
+        document.body.addEventListener('mouseout', function(e) {
+          if (e.target.matches('#page-rating-stars i')) {
+            var stars = e.target.parentNode.querySelectorAll('i');
+            stars.forEach(function(star) {
+              star.classList.remove('hover');
+            });
+          }
+        });
+
+        document.body.addEventListener('click', function(e) {
+          if (e.target.matches('#page-rating-stars i')) {
+            var rating = parseInt(e.target.getAttribute('data-rating'));
+            
+            fetch('/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: JSON.stringify({
+                query: 'mutation($pageId: Int!, $rating: Int!) { ratings { save(pageId: $pageId, rating: $rating) { responseResult { message }, ratingScore, ratingCount, userRating } } }',
+                variables: {
+                  pageId: parseInt(pageId),
+                  rating: parseInt(rating)
+                }
+              })
+            })
+            .then(r => r.json())
+            .then(data => {
+              if (data.data && data.data.ratings && data.data.ratings.save) {
+                var result = data.data.ratings.save;
+                var scoreEl = document.getElementById('page-rating-score');
+                var countEl = document.getElementById('page-rating-count');
+                if (scoreEl) scoreEl.innerText = result.ratingScore.toFixed(1);
+                if (countEl) countEl.innerText = result.ratingCount;
+                
+                var starsContainer = document.getElementById('page-rating-stars');
+                if (starsContainer) {
+                  var starIcons = starsContainer.querySelectorAll('i');
+                  starIcons.forEach(function(icon, index) {
+                    if (index < result.userRating) {
+                      icon.className = 'mdi mdi-star active';
+                    } else {
+                      icon.className = 'mdi mdi-star-outline';
+                    }
+                  });
+                }
+              } else if (data.errors) {
+                alert(data.errors[0].message);
+              }
+            });
+          }
+        });
+      })();

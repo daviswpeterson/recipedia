@@ -548,6 +548,18 @@ router.get('/*', async (req, res, next) => {
           let pageFilename = WIKI.config.lang.namespacing ? `${pageArgs.locale}/${page.path}` : page.path
           pageFilename += page.contentType === 'markdown' ? '.md' : '.html'
 
+          // -> Ratings
+          const ratingScoreResult = await WIKI.models.knex('pageRatings').where('pageId', page.id).avg({ avgRating: 'rating' }).first()
+          const ratingCountResult = await WIKI.models.knex('pageRatings').where('pageId', page.id).count({ countRating: 'id' }).first()
+          let userRating = 0
+          if (req.user && req.user.id !== 2) {
+            const userRatingResult = await WIKI.models.knex('pageRatings').where({ pageId: page.id, userId: req.user.id }).first('rating')
+            if (userRatingResult) { userRating = userRatingResult.rating }
+          }
+
+          // -> Check for 'no-rating' tag
+          const hasNoRatingTag = _.some(page.tags, { tag: 'no-rating' })
+
           // -> Render view
           res.render('page', {
             page,
@@ -555,7 +567,11 @@ router.get('/*', async (req, res, next) => {
             injectCode,
             comments: commentTmpl,
             effectivePermissions,
-            pageFilename
+            pageFilename,
+            ratingScore: ratingScoreResult ? parseFloat(ratingScoreResult.avgRating) || 0 : 0,
+            ratingCount: ratingCountResult ? parseInt(ratingCountResult.countRating) || 0 : 0,
+            userRating,
+            ratingsEnabled: WIKI.config.features.featurePageRatings && (page.isRatingDisabled === true || page.isRatingDisabled === 1 ? false : true) && !hasNoRatingTag
           })
         }
       } else if (pageArgs.path === 'home') {
