@@ -1,0 +1,29 @@
+# ===============================================
+# RATING
+# ===============================================
+
+extend type Mutation {
+  ratings: RatingMutation
+}
+
+# -----------------------------------------------
+# MUTATIONS
+# -----------------------------------------------
+
+type RatingMutation {
+  save(
+    pageId: Int!
+    rating: Int!
+  ): RatingResponse @auth(requires: ["read:pages", "manage:system"])
+}
+
+# -----------------------------------------------
+# TYPES
+# -----------------------------------------------
+
+type RatingResponse {
+  responseResult: ResponseStatus!
+  ratingScore: Float
+  ratingCount: Int
+  userRating: Int
+}

@@ -207,6 +207,9 @@ type Page {
   creatorId: Int! @auth(requires: ["write:pages", "manage:system"])
   creatorName: String! @auth(requires: ["write:pages", "manage:system"])
   creatorEmail: String! @auth(requires: ["write:pages", "manage:system"])
+  ratingScore: Float
+  ratingCount: Int
+  userRating: Int
 }
 
 type PageTag {
