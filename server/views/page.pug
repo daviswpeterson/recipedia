@@ -10,9 +10,9 @@ block head
   if config.features.featurePageRatings
     style(type='text/css').
       .page-rating {
-        margin: 20px 0;
-        padding: 10px;
-        border-top: 1px solid #eee;
+        margin: 0 0 20px 0;
+        padding: 0 0 10px 0;
+        border-bottom: 1px solid #eee;
         display: flex;
         align-items: center;
       }
@@ -60,7 +60,6 @@ block body
       filename=pageFilename
       )
       template(slot='contents')
-        div!= page.render
         if config.features.featurePageRatings
           .page-rating
             .page-rating-stars#page-rating-stars
@@ -71,6 +70,7 @@ block body
               |  / 5 (
               span#page-rating-count= ratingCount
               |  ratings)
+        div!= page.render
       template(slot='comments')
         div!= comments.main
   if injectCode.body
