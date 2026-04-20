@@ -3,3 +3,192 @@ extends master.pug
 block body
   #root
     profile
+  
+  #liked-pages-spa-content(style='display:none;')
+    .liked-pages-header.pa-6.white(style='border-bottom: 1px solid rgba(0,0,0,0.12); display: flex; align-items: center;')
+      img(src='/_assets/svg/icon-file.svg', style='width: 64px; margin-right: 24px;')
+      div
+        .headline.primary--text Liked Pages
+        .subheading.grey--text Pages you have added to your heart collection
+    
+    .pa-6
+      .v-card.elevation-2(style='border-radius: 8px; overflow: hidden;')
+        #liked-pages-container
+          .text-center.py-16
+            .v-progress-circular.v-progress-circular--visible.v-progress-circular--indeterminate.primary--text(style='height: 48px; width: 48px;', role='progressbar')
+              svg(viewBox='22.857142857142858 22.857142857142858 45.714285714285715 45.714285714285715')
+                circle.v-progress-circular__overlay(fill='transparent', cx='45.714285714285715', cy='45.714285714285715', r='20', stroke-width='5.714285714285714')
+            p.mt-4.grey--text Loading your collection...
+
+  style(type='text/css').
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-in { animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    .liked-table { width: 100%; border-collapse: collapse; }
+    .liked-table th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 500; color: rgba(0,0,0,0.6); border-bottom: 1px solid rgba(0,0,0,0.12); text-transform: uppercase; }
+    .liked-table td { padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 14px; vertical-align: middle; }
+    .liked-table tr:hover { background-color: rgba(0,0,0,0.02); cursor: pointer; }
+    .page-title-link { text-decoration: none; color: #1976d2; font-weight: 500; }
+    .page-title-link:hover { text-decoration: underline; }
+    .page-path { font-family: 'Roboto Mono', monospace; font-size: 12px; color: rgba(0,0,0,0.6); background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px; }
+  
+  script.
+    (function() {
+      var lastPath = '';
+      
+      function fetchLikedPages() {
+        var container = document.getElementById('liked-pages-container');
+        var query = 'query { users { profile { likedPages { id path title description locale } } } }';
+        
+        fetch('/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.data && data.data.users && data.data.users.profile && data.data.users.profile.likedPages) {
+            var pages = data.data.users.profile.likedPages.filter(function(p) { return p !== null; });
+            if (pages.length === 0) {
+              container.innerHTML = '<div class="pa-16 text-center">' +
+                '<i class="v-icon notranslate mdi mdi-heart-outline theme--light grey--text lighten-3 mb-6" style="font-size: 84px; opacity: 0.3;"></i>' +
+                '<div class="headline grey--text text--darken-1 mb-2">Your collection is empty</div>' +
+                '<div class="subheading grey--text">Heart some pages and they will appear here!</div>' +
+                '</div>';
+            } else {
+              var html = '<table class="liked-table"><thead><tr><th>Page</th><th>Path</th><th style="text-align:right">Action</th></tr></thead><tbody>';
+              pages.forEach(function(p) {
+                var link = '/' + (p.locale || 'en') + '/' + p.path;
+                html += '<tr onclick="window.location.href=\'' + link + '\'">' +
+                  '<td><div style="display:flex; align-items:center"><i class="v-icon notranslate mdi mdi-file-document-outline mr-3 primary--text" style="font-size:20px"></i>' +
+                  '<div><div><a href="' + link + '" class="page-title-link" onclick="event.stopPropagation()">' + (p.title || 'Untitled') + '</a></div>' +
+                  (p.description ? '<div class="caption grey--text">' + p.description + '</div>' : '') + '</div></div></td>' +
+                  '<td><span class="page-path">' + p.path + '</span></td>' +
+                  '<td style="text-align:right"><a href="' + link + '" class="v-btn v-btn--icon theme--light v-size--small grey--text" onclick="event.stopPropagation()"><i class="v-icon notranslate mdi mdi-open-in-new"></i></a></td></tr>';
+              });
+              html += '</tbody></table>';
+              container.innerHTML = html;
+            }
+          }
+        });
+      }
+
+      function updateView() {
+        var path = window.location.pathname;
+        if (path === lastPath) return;
+        lastPath = path;
+
+        var root = document.getElementById('root');
+        var likedContent = document.getElementById('liked-pages-spa-content');
+        if (!root || !likedContent) return;
+
+        var vMain = root.querySelector('.v-main');
+        if (!vMain) {
+          setTimeout(updateView, 200);
+          return;
+        }
+
+        var vMainWrap = vMain.querySelector('.v-main__wrap');
+        if (!vMainWrap) {
+          setTimeout(updateView, 200);
+          return;
+        }
+
+        if (path === '/p/liked') {
+          // Hide SPA content children
+          Array.from(vMainWrap.children).forEach(function(child) {
+            if (child !== likedContent) {
+              if (child.style.display !== 'none') {
+                child.setAttribute('data-prev-display', child.style.display);
+                child.style.display = 'none';
+              }
+            }
+          });
+          
+          // Move and show our content
+          if (likedContent.parentNode !== vMainWrap) {
+            vMainWrap.appendChild(likedContent);
+          }
+          likedContent.classList.remove('slide-in');
+          void likedContent.offsetWidth; // Trigger reflow
+          likedContent.classList.add('slide-in');
+          likedContent.style.display = 'block';
+          fetchLikedPages();
+        } else {
+          // Restore SPA content
+          likedContent.style.display = 'none';
+          Array.from(vMainWrap.children).forEach(function(child) {
+            if (child !== likedContent) {
+              var prev = child.getAttribute('data-prev-display');
+              if (prev !== null) {
+                child.style.display = prev;
+                child.removeAttribute('data-prev-display');
+              } else {
+                child.style.display = '';
+              }
+            }
+          });
+        }
+        
+        // Update Sidebar active state
+        var tabs = document.querySelectorAll('.v-navigation-drawer .v-list-item');
+        tabs.forEach(function(tab) {
+          var href = tab.getAttribute('href');
+          if (href === path) {
+            tab.classList.add('v-list-item--active', 'primary--text');
+          } else {
+            tab.classList.remove('v-list-item--active', 'primary--text');
+          }
+        });
+      }
+
+      function injectLikedTab() {
+        var sidebar = document.querySelector('.v-navigation-drawer .v-list');
+        if (sidebar && !document.getElementById('profile-liked-pages-tab')) {
+          var tab = document.createElement('a');
+          tab.id = 'profile-liked-pages-tab';
+          tab.href = '/p/liked';
+          tab.className = 'v-list-item v-list-item--link theme--light';
+          tab.style.textDecoration = 'none';
+          tab.innerHTML = '<div class="v-list-item__icon mr-4"><i class="v-icon notranslate mdi mdi-heart theme--light"></i></div>' +
+                          '<div class="v-list-item__content"><div class="v-list-item__title">Liked Pages</div></div>';
+          
+          tab.onclick = function(e) {
+            e.preventDefault();
+            history.pushState(null, '', '/p/liked');
+            updateView();
+          };
+
+          if (sidebar.children.length > 0) {
+            sidebar.insertBefore(tab, sidebar.children[1]);
+          } else {
+            sidebar.appendChild(tab);
+          }
+          
+          // Also hijack other tabs
+          Array.from(sidebar.children).forEach(function(el) {
+            if (el.tagName === 'A' && el.id !== 'profile-liked-pages-tab') {
+              el.onclick = function(e) {
+                var href = this.getAttribute('href');
+                if (href && href.startsWith('/p')) {
+                  e.preventDefault();
+                  history.pushState(null, '', href);
+                  updateView();
+                }
+              };
+            }
+          });
+        }
+      }
+      
+      setInterval(function() {
+        injectLikedTab();
+        updateView();
+      }, 500);
+      window.addEventListener('popstate', updateView);
+      
+      // Initial run
+      setTimeout(updateView, 1000);
+    })();

@@ -172,6 +172,7 @@ type UserProfile {
   lastLoginAt: Date
   groups: [String]!
   pagesTotal: Int!
+  likedPages: [Page]
 }
 
 type UserTokenResponse {

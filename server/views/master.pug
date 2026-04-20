@@ -24,6 +24,7 @@ html(lang=siteConfig.lang)
     link(rel='icon', type='image/png', sizes='192x192', href='/_assets/favicons/android-chrome-192x192.png')
     link(rel='icon', type='image/png', sizes='32x32', href='/_assets/favicons/favicon-32x32.png')
     link(rel='icon', type='image/png', sizes='16x16', href='/_assets/favicons/favicon-16x16.png')
+    link(rel='icon', type='image/png', sizes='16x16', href='/_assets/favicons/favicon-16x16.png')
     link(rel='mask-icon', href='/_assets/favicons/safari-pinned-tab.svg', color='#1976d2')
     link(rel='manifest', href='/_assets/manifest.json')
 
@@ -60,24 +61,40 @@ html(lang=siteConfig.lang)
       href='/_assets/css/app.7e4d2a2ea92425e9d187.css'
     )
       
-    
+    style(type='text/css').
+      .nav-heart-btn {
+        margin-right: 10px !important;
+        color: #fff !important;
+        position: relative !important;
+        display: inline-flex !important;
+        vertical-align: middle !important;
+      }
+      .nav-heart-btn i {
+        color: #fff !important;
+      }
+      .nav-heart-btn:hover::after {
+        content: 'Liked Pages';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.9);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 13px;
+        white-space: nowrap;
+        margin-top: 10px;
+        z-index: 10000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        pointer-events: none;
+      }
 
     //- JS
     
       
-    script(
-      type='text/javascript'
-      src='/_assets/js/runtime.js?1770864460'
-      )
-      
-    
-      
-    script(
-      type='text/javascript'
-      src='/_assets/js/app.js?1770864460'
-      )
-      
-    
+    script(type='text/javascript' src='/_assets/js/runtime.js?1770864460')
+    script(type='text/javascript' src='/_assets/js/app.js?1770864460')
 
     != analyticsCode.head
 
@@ -87,3 +104,58 @@ html(lang=siteConfig.lang)
     != analyticsCode.bodyStart
     block body
     != analyticsCode.bodyEnd
+
+    if user && user.id !== 2
+      script.
+        (function() {
+          function injectLikedButton() {
+            var appBar = document.querySelector('.v-app-bar__content');
+            if (!appBar) return;
+            
+            // Re-inject if missing or detached
+            var existing = document.getElementById('nav-liked-pages-btn');
+            if (existing && existing.parentNode === appBar) return;
+            if (existing) existing.remove();
+            
+            // Find insertion point - try multiple strategies
+            var insertionPoint = null;
+            
+            // 1. Look for Page Actions / dots-vertical
+            insertionPoint = appBar.querySelector('.mdi-dots-vertical, .mdi-file-document-outline, .mdi-square-edit-outline');
+            if (insertionPoint) {
+              insertionPoint = insertionPoint.closest('button, a');
+            }
+            
+            // 2. Look for Administration text (if present)
+            if (!insertionPoint) {
+              var btns = Array.from(appBar.querySelectorAll('button, a'));
+              insertionPoint = btns.find(function(el) {
+                var t = (el.textContent || '').toLowerCase();
+                return t.indexOf('admin') >= 0 || t.indexOf('page') >= 0;
+              });
+            }
+            
+            // 3. Fallback to User Menu
+            if (!insertionPoint) {
+              insertionPoint = appBar.querySelector('.v-menu') || appBar.querySelector('button:last-child');
+            }
+            
+            var likedBtn = document.createElement('a');
+            likedBtn.id = 'nav-liked-pages-btn';
+            likedBtn.href = '/p/liked';
+            likedBtn.className = 'v-btn v-btn--icon v-btn--round theme--dark v-size--default nav-heart-btn';
+            likedBtn.innerHTML = '<span class="v-btn__content"><i class="v-icon notranslate mdi mdi-heart theme--dark" style="color: white !important;"></i></span>';
+            
+            if (insertionPoint) {
+              appBar.insertBefore(likedBtn, insertionPoint);
+            } else {
+              appBar.appendChild(likedBtn);
+            }
+          }
+
+          // Hyper-persistent check
+          setInterval(injectLikedButton, 500);
+          var observer = new MutationObserver(injectLikedButton);
+          observer.observe(document.body, { childList: true, subtree: true });
+          injectLikedButton();
+        })();

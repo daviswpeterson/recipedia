@@ -260,6 +260,17 @@ module.exports = {
     async pagesTotal (usr) {
       const result = await WIKI.models.pages.query().count('* as total').where('creatorId', usr.id).first()
       return _.toSafeInteger(result.total)
+    },
+    async likedPages (usr) {
+      const ratings = await WIKI.models.pageRatings.query().where({ userId: usr.id }).where('rating', '>=', 1).select('pageId')
+      if (ratings.length === 0) {
+        return []
+      }
+      const pageIds = ratings.map(r => r.pageId)
+      return WIKI.models.pages.query()
+        .whereIn('id', pageIds)
+        .where('isPublished', true)
+        .select('id', 'path', 'title', 'description', 'localeCode as locale')
     }
   }
 }
