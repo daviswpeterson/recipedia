@@ -16,19 +16,18 @@ block head
         display: flex;
         align-items: center;
       }
-      .page-rating-stars {
+      .page-rating-heart {
         display: inline-flex;
         margin-right: 15px;
       }
-      .page-rating-stars i {
+      .page-rating-heart i {
         cursor: pointer;
         font-size: 24px;
         color: #ccc;
         transition: color 0.2s;
       }
-      .page-rating-stars i.active,
-      .page-rating-stars i.hover {
-        color: #ffc107;
+      .page-rating-heart i.active {
+        color: #e91e63;
       }
       .page-rating-info {
         font-size: 14px;
@@ -62,14 +61,11 @@ block body
       template(slot='contents')
         if ratingsEnabled
           .page-rating
-            .page-rating-stars#page-rating-stars
-              each val in [1, 2, 3, 4, 5]
-                i(class=(userRating >= val ? 'mdi mdi-star active' : 'mdi mdi-star-outline'), data-rating=val)
+            .page-rating-heart#page-rating-heart
+              i(class=(userRating >= 1 ? 'mdi mdi-heart active' : 'mdi mdi-heart-outline'), data-rating=(userRating >= 1 ? 0 : 1))
             .page-rating-info
-              span#page-rating-score= ratingScore.toFixed(1)
-              |  / 5 (
               span#page-rating-count= ratingCount
-              |  ratings)
+              |  likes
         div!= page.render
       template(slot='comments')
         div!= comments.main
@@ -83,31 +79,8 @@ block body
       (function() {
         var pageId = !{page.id};
         
-        document.body.addEventListener('mouseover', function(e) {
-          if (e.target.matches('#page-rating-stars i')) {
-            var rating = parseInt(e.target.getAttribute('data-rating'));
-            var stars = e.target.parentNode.querySelectorAll('i');
-            stars.forEach(function(star, index) {
-              if (index < rating) {
-                star.classList.add('hover');
-              } else {
-                star.classList.remove('hover');
-              }
-            });
-          }
-        });
-
-        document.body.addEventListener('mouseout', function(e) {
-          if (e.target.matches('#page-rating-stars i')) {
-            var stars = e.target.parentNode.querySelectorAll('i');
-            stars.forEach(function(star) {
-              star.classList.remove('hover');
-            });
-          }
-        });
-
         document.body.addEventListener('click', function(e) {
-          if (e.target.matches('#page-rating-stars i')) {
+          if (e.target.matches('#page-rating-heart i')) {
             var rating = parseInt(e.target.getAttribute('data-rating'));
             
             fetch('/graphql', {
@@ -128,21 +101,19 @@ block body
             .then(data => {
               if (data.data && data.data.ratings && data.data.ratings.save) {
                 var result = data.data.ratings.save;
-                var scoreEl = document.getElementById('page-rating-score');
                 var countEl = document.getElementById('page-rating-count');
-                if (scoreEl) scoreEl.innerText = result.ratingScore.toFixed(1);
                 if (countEl) countEl.innerText = result.ratingCount;
                 
-                var starsContainer = document.getElementById('page-rating-stars');
-                if (starsContainer) {
-                  var starIcons = starsContainer.querySelectorAll('i');
-                  starIcons.forEach(function(icon, index) {
-                    if (index < result.userRating) {
-                      icon.className = 'mdi mdi-star active';
-                    } else {
-                      icon.className = 'mdi mdi-star-outline';
-                    }
-                  });
+                var heartContainer = document.getElementById('page-rating-heart');
+                if (heartContainer) {
+                  var heartIcon = heartContainer.querySelector('i');
+                  if (result.userRating >= 1) {
+                    heartIcon.className = 'mdi mdi-heart active';
+                    heartIcon.setAttribute('data-rating', 0);
+                  } else {
+                    heartIcon.className = 'mdi mdi-heart-outline';
+                    heartIcon.setAttribute('data-rating', 1);
+                  }
                 }
               } else if (data.errors) {
                 alert(data.errors[0].message);

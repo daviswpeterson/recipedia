@@ -15,8 +15,8 @@ module.exports = {
         }
 
         const rating = parseInt(args.rating)
-        if (rating < 1 || rating > 5) {
-          throw new Error('Rating must be between 1 and 5.')
+        if (rating < 0 || rating > 5) {
+          throw new Error('Rating must be between 0 and 5.')
         }
 
         const pageId = parseInt(args.pageId)
@@ -25,8 +25,12 @@ module.exports = {
         const existingRating = await WIKI.models.pageRatings.query().where({ pageId, userId }).first()
 
         if (existingRating) {
-          await existingRating.$query().patch({ rating })
-        } else {
+          if (rating === 0) {
+            await existingRating.$query().delete()
+          } else {
+            await existingRating.$query().patch({ rating })
+          }
+        } else if (rating > 0) {
           await WIKI.models.pageRatings.query().insert({
             pageId,
             userId,

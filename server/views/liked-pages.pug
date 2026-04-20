@@ -1,0 +1,248 @@
+extends master.pug
+
+block head
+  style(type='text/css').
+    .liked-pages-view {
+      display: flex;
+      flex: 1 1 auto;
+      max-width: 100%;
+      position: relative;
+    }
+    .liked-pages-sidebar {
+      width: 300px;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      border-right: 1px solid rgba(0,0,0,0.12);
+      background: white;
+    }
+    .liked-pages-main {
+      flex: 1 1 auto;
+      background-color: #f5f5f5;
+      min-height: 100vh;
+    }
+    .liked-pages-header {
+      padding: 24px;
+      background: white;
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      display: flex;
+      align-items: center;
+    }
+    .liked-pages-header-icon {
+      width: 80px;
+      margin-right: 24px;
+    }
+    .liked-pages-content-card {
+      margin: 24px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    }
+    
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      text-decoration: none;
+      color: rgba(0,0,0,0.87);
+      font-weight: 500;
+      font-size: 0.875rem;
+      border-radius: 4px;
+      margin: 4px 8px;
+    }
+    .sidebar-link i {
+      margin-right: 16px;
+      color: rgba(0,0,0,0.54);
+    }
+    .sidebar-link.active {
+      color: #1976d2;
+      background-color: rgba(25, 118, 210, 0.12);
+    }
+    .sidebar-link.active i {
+      color: #1976d2;
+    }
+    
+    /* Table Styling to match Admin area */
+    .liked-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .liked-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.6);
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      text-transform: uppercase;
+    }
+    .liked-table td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    .liked-table tr:hover {
+      background-color: rgba(0,0,0,0.02);
+    }
+    .liked-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .page-title-link {
+      text-decoration: none;
+      color: #1976d2;
+      font-weight: 500;
+    }
+    .page-title-link:hover {
+      text-decoration: underline;
+    }
+    
+    .page-path {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12px;
+      color: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    
+    .empty-state {
+      padding: 80px 40px;
+      text-align: center;
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in {
+      animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+block body
+  #root
+    .v-application.theme--light
+      .v-application--wrap
+        .liked-pages-view
+          aside.liked-pages-sidebar
+            .pa-4
+              .headline.primary--text My Account
+            .v-list.v-sheet.theme--light.v-list--dense.v-list--nav
+              a.sidebar-link(href='/p')
+                i.v-icon.notranslate.mdi.mdi-face-profile.theme--light
+                span Profile
+              a.sidebar-link(href='/p/pages')
+                i.v-icon.notranslate.mdi.mdi-file-document-outline.theme--light
+                span Pages
+              a.sidebar-link.active(href='/p/liked')
+                i.v-icon.notranslate.mdi.mdi-heart.theme--light
+                span Liked Pages
+              a.sidebar-link(href='/')
+                i.v-icon.notranslate.mdi.mdi-home.theme--light
+                span Home
+          
+          main.liked-pages-main
+            .liked-pages-header
+              img.liked-pages-header-icon(src='/_assets/svg/icon-file.svg')
+              .liked-pages-header-title
+                .headline.primary--text Liked Pages
+                .subheading.grey--text List of pages that I have liked
+            
+            .liked-pages-content-card
+              #liked-pages-content
+                .text-center.py-16
+                  .v-progress-circular.v-progress-circular--visible.v-progress-circular--indeterminate.primary--text(style='height: 48px; width: 48px;', role='progressbar')
+                    svg(viewBox='22.857142857142858 22.857142857142858 45.714285714285715 45.714285714285715')
+                      circle.v-progress-circular__overlay(fill='transparent', cx='45.714285714285715', cy='45.714285714285715', r='20', stroke-width='5.714285714285714')
+                  p.mt-4.grey--text Loading your collection...
+
+  script.
+    (function() {
+      // GraphQL query to fetch liked pages
+      var query = 'query { users { profile { likedPages { id path title description locale } } } }';
+      
+      fetch('/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ query: query })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var container = document.getElementById('liked-pages-content');
+        
+        // Debug logging to see what's actually coming back
+        console.log('Liked Pages Data:', data);
+        
+        if (data.data && data.data.users && data.data.users.profile && data.data.users.profile.likedPages) {
+          var pages = data.data.users.profile.likedPages.filter(function(p) { return p !== null; });
+          
+          if (pages.length === 0) {
+            container.innerHTML = '<div class="empty-state animate-in">' +
+              '<i class="v-icon notranslate mdi mdi-heart-outline theme--light grey--text lighten-3 mb-6" style="font-size: 84px; opacity: 0.3;"></i>' +
+              '<div class="headline grey--text text--darken-1 mb-2">Your collection is empty</div>' +
+              '<div class="subheading grey--text">Heart some pages and they will appear here!</div>' +
+              '<div class="mt-8"><a href="/" class="v-btn v-btn--contained theme--light v-size--large primary white--text" style="text-decoration:none; padding: 12px 24px; border-radius: 4px; display:inline-block;">Explore Pages</a></div>' +
+              '</div>';
+          } else {
+            var html = '<div class="animate-in"><table class="liked-table">' +
+              '<thead>' +
+                '<tr>' +
+                  '<th>Page</th>' +
+                  '<th>Path</th>' +
+                  '<th style="text-align:right">Action</th>' +
+                '</tr>' +
+              '</thead>' +
+              '<tbody>';
+            
+            pages.forEach(function(p) {
+              var title = p.title || 'Untitled';
+              var link = '/' + (p.locale || 'en') + '/' + p.path;
+              html += '<tr>' +
+                '<td>' +
+                  '<div style="display:flex; align-items:center">' +
+                    '<i class="v-icon notranslate mdi mdi-file-document-outline mr-3 primary--text" style="font-size:20px"></i>' +
+                    '<div>' +
+                      '<div><a href="' + link + '" class="page-title-link">' + title + '</a></div>' +
+                      (p.description ? '<div class="caption grey--text">' + p.description + '</div>' : '') +
+                    '</div>' +
+                  '</div>' +
+                '</td>' +
+                '<td><span class="page-path">' + p.path + '</span></td>' +
+                '<td style="text-align:right">' +
+                  '<a href="' + link + '" class="v-btn v-btn--icon theme--light v-size--small grey--text" title="View Page">' +
+                    '<i class="v-icon notranslate mdi mdi-open-in-new"></i>' +
+                  '</a>' +
+                '</td>' +
+              '</tr>';
+            });
+            
+            html += '</tbody></table>' +
+              '<div class="pa-4 grey lighten-5 grey--text caption text-right">' +
+                'Total: ' + pages.length + ' page' + (pages.length > 1 ? 's' : '') +
+              '</div></div>';
+              
+            container.innerHTML = html;
+          }
+        } else {
+          container.innerHTML = '<div class="pa-16 text-center animate-in">' +
+            '<i class="v-icon notranslate mdi mdi-alert-circle-outline red--text mb-4" style="font-size: 48px"></i>' +
+            '<div class="headline red--text">Failed to load collection</div>' +
+            '<div class="grey--text mt-2">' + (data.errors ? data.errors[0].message : 'Unknown GraphQL Error') + '</div>' +
+            '</div>';
+        }
+      })
+      .catch(function(err) {
+        console.error('Fetch Error:', err);
+        document.getElementById('liked-pages-content').innerHTML = '<div class="pa-16 text-center animate-in">' +
+          '<i class="v-icon notranslate mdi mdi-wifi-off red--text mb-4" style="font-size: 48px"></i>' +
+          '<div class="headline red--text">Network Error</div>' +
+          '<div class="grey--text mt-2">' + err.message + '</div>' +
+          '</div>';
+      });
+    })();

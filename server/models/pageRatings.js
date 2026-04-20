@@ -17,7 +17,7 @@ module.exports = class PageRating extends Model {
         id: {type: 'integer'},
         pageId: {type: 'integer'},
         userId: {type: 'integer'},
-        rating: {type: 'integer', minimum: 1, maximum: 5},
+        rating: {type: 'integer', minimum: 0, maximum: 5},
         createdAt: {type: 'string'},
         updatedAt: {type: 'string'}
       }

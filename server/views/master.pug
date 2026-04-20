@@ -24,6 +24,7 @@ html(lang=siteConfig.lang)
     link(rel='icon', type='image/png', sizes='192x192', href='/_assets/favicons/android-chrome-192x192.png')
     link(rel='icon', type='image/png', sizes='32x32', href='/_assets/favicons/favicon-32x32.png')
     link(rel='icon', type='image/png', sizes='16x16', href='/_assets/favicons/favicon-16x16.png')
+    link(rel='icon', type='image/png', sizes='16x16', href='/_assets/favicons/favicon-16x16.png')
     link(rel='mask-icon', href='/_assets/favicons/safari-pinned-tab.svg', color='#1976d2')
     link(rel='manifest', href='/_assets/manifest.json')
 
@@ -60,24 +61,35 @@ html(lang=siteConfig.lang)
       href='/_assets/css/app.7e4d2a2ea92425e9d187.css'
     )
       
-    
+    style(type='text/css').
+      .nav-heart-btn {
+        margin-right: 10px !important;
+        color: #9e9e9e !important;
+        position: relative !important;
+        display: inline-flex !important;
+        vertical-align: middle !important;
+        background-color: transparent !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        width: 45px !important;
+        height: 57px !important;
+        min-width: 45px !important;
+      }
+      .nav-heart-btn::before, .nav-heart-btn::after {
+        display: none !important;
+      }
+      .nav-heart-btn i {
+        color: #9e9e9e !important;
+      }
+      .nav-heart-btn:hover {
+        background-color: #141414 !important;
+      }
 
     //- JS
     
       
-    script(
-      type='text/javascript'
-      src='/_assets/js/runtime.js?1770864460'
-      )
-      
-    
-      
-    script(
-      type='text/javascript'
-      src='/_assets/js/app.js?1770864460'
-      )
-      
-    
+    script(type='text/javascript' src='/_assets/js/runtime.js?1770864460')
+    script(type='text/javascript' src='/_assets/js/app.js?1770864460')
 
     != analyticsCode.head
 
@@ -87,3 +99,64 @@ html(lang=siteConfig.lang)
     != analyticsCode.bodyStart
     block body
     != analyticsCode.bodyEnd
+
+    if user && user.id !== 2
+      script.
+        (function() {
+          var injectLikedButton = function() {
+            try {
+              var appBar = document.querySelector('.v-app-bar__content') || 
+                           document.querySelector('.v-toolbar__content') || 
+                           document.querySelector('header');
+              
+              if (!appBar) return;
+
+              var btn = document.getElementById('nav-liked-pages-btn');
+              if (!btn) {
+                btn = document.createElement('a');
+                btn.id = 'nav-liked-pages-btn';
+                btn.href = '/p/liked';
+                btn.className = 'v-btn v-btn--icon theme--dark v-size--default nav-heart-btn';
+                btn.style.cssText = 'display: inline-flex !important; align-items: center !important; margin: 0 10px !important; color: #9e9e9e !important; border-radius: 0 !important; width: 45px !important; height: 57px !important; min-width: 45px !important;';
+                btn.innerHTML = '<span class="v-btn__content"><i class="v-icon notranslate mdi mdi-heart theme--dark" style="color: #9e9e9e !important;"></i></span>';
+              }
+
+              // TIERED PLACEMENT STRATEGY
+              
+              // 1. Try to find Page Actions / Menu
+              var targetIcon = appBar.querySelector('.mdi-dots-vertical') || 
+                               appBar.querySelector('.mdi-file-document-outline') ||
+                               appBar.querySelector('.mdi-square-edit-outline') ||
+                               appBar.querySelector('.mdi-view-list') ||
+                               appBar.querySelector('.mdi-cog');
+              var target = targetIcon ? targetIcon.closest('button, a') : null;
+
+              if (target && target.parentNode) {
+                if (btn.nextSibling !== target) {
+                  target.parentNode.insertBefore(btn, target);
+                }
+              } else {
+                // 2. Fallback: After Search Bar
+                var search = appBar.querySelector('.v-text-field') || appBar.querySelector('.v-input');
+                if (search && search.parentNode) {
+                  if (btn.previousSibling !== search) {
+                    search.parentNode.insertBefore(btn, search.nextSibling);
+                  }
+                } else if (btn.parentNode !== appBar) {
+                  // 3. Last Resort: Append to bar
+                  appBar.appendChild(btn);
+                }
+              }
+              
+              // Ensure visibility
+              if (btn.style.display === 'none') btn.style.display = 'inline-flex';
+              
+            } catch (e) {
+              if (e.name !== 'NotFoundError') console.error('Liked Pages Error:', e);
+            }
+          };
+
+          setInterval(injectLikedButton, 500);
+          injectLikedButton();
+          window.addEventListener('load', injectLikedButton);
+        })();
